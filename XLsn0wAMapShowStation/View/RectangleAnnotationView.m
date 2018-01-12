@@ -43,6 +43,7 @@
     _title = title;
     [self.contentView setTitle:title forState:UIControlStateNormal];
 }
+
 - (void)didSelectedAnnotation:(RectangleAnnotationView *)annotation {
     [annotation setBounds:CGRectMake(0.f, 0.f, 180, 50)];
     annotation.contentView.frame = annotation.bounds;

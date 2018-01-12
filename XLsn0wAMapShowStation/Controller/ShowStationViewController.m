@@ -3,7 +3,11 @@
 
 @interface ShowStationViewController ()<MAMapViewDelegate, AMapLocationManagerDelegate, MKMapViewDelegate>
 
-@property (nonatomic, strong) MAMapView *mapView;//百度地图
+@property (nonatomic, strong) MAMapView *gaodeMapview;
+@property (nonatomic, strong) MKMapView *appleMapview;
+
+@property (nonatomic, assign) BOOL isSwitching;
+
 @property(nonatomic, strong) AMapLocationManager *locationManager;//定位服务
 @property (nonatomic, assign) float zoomValue;//移动或缩放前的比例尺
 @property (nonatomic, assign) CLLocationCoordinate2D oldCoor;//地图移动前中心经纬度
@@ -18,26 +22,26 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = setWhiteColor;
-    [self setupUI];
+    [self initMAMapViewUI];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
-//    [self.mapView viewWillAppear];
-    self.mapView.delegate = self; //
+    [super viewWillAppear:animated];
+    self.gaodeMapview.delegate = self;
     self.locationManager.delegate = self;
     [self.locationManager startUpdatingHeading];
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
-//    [self.mapView viewWillDisappear];
-    self.mapView.delegate = nil; // 不用时，置nil
+    [super viewWillDisappear:animated];
+    self.gaodeMapview.delegate = nil; // 不用时，置nil
     self.locationManager.delegate = nil;
     [self.locationManager startUpdatingHeading];
-  
 }
+
 - (void)dealloc {
-    if (self.mapView) {
-        self.mapView = nil;
+    if (self.gaodeMapview) {
+        self.gaodeMapview = nil;
     }
     if (self.locationManager) {
         self.locationManager.delegate = nil;
@@ -46,27 +50,37 @@
 
 #pragma mark -- UI
 
-- (void)setupUI {
+- (void)initMAMapViewUI {
 
     
-    self.mapView = [[MAMapView alloc] initWithFrame:CGRectMake(0, 0, kScreenWidth, kScreenHeight)];
-    [self.view addSubview:self.mapView];
+    self.gaodeMapview = [[MAMapView alloc] initWithFrame:CGRectMake(0, 0, kScreenWidth, kScreenHeight)];
+    [self.view addSubview:self.gaodeMapview];
+    self.gaodeMapview.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     
+    ///AMapLocationManager
     self.locationManager = [[AMapLocationManager alloc] init];
     self.locationManager.delegate = self;
-    self.mapView.delegate = self;
-    self.mapView.showsUserLocation = YES;
+    
+    self.gaodeMapview.delegate = self;
+    self.gaodeMapview.showsUserLocation = YES;
   
     
- 
 //    self.mapView.mapScaleBarPosition = CGPointMake(10, 75);//比例尺位置
-    self.mapView.minZoomLevel = 8;
-    self.mapView.maxZoomLevel = 14;
+    self.gaodeMapview.minZoomLevel = 3;
+    self.gaodeMapview.maxZoomLevel = 14;
 //    self.mapView.isSelectedAnnotationViewFront = YES;
-    self.mapView.userTrackingMode = MAUserTrackingModeNone;
+    self.gaodeMapview.userTrackingMode = MAUserTrackingModeNone;
     [self.locationManager startUpdatingHeading];
     //开启持续定位
 //    [self.locationManager startUpdatingLocation];
+    
+    ///AppleMap
+    self.appleMapview = [[MKMapView alloc] initWithFrame:self.view.bounds];
+    self.appleMapview.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    self.appleMapview.delegate = self;
+    [self.view addSubview:self.appleMapview];
+    [self.appleMapview setHidden:YES];
+    
     
     //创建编码对象
     CLGeocoder *geocoder = [[CLGeocoder alloc] init];
@@ -82,20 +96,184 @@
         CLLocationCoordinate2D coor;
         coor.latitude = placemark.location.coordinate.latitude;
         coor.longitude = placemark.location.coordinate.longitude;
-        [self.mapView setCenterCoordinate:coor];
-        [self.mapView setZoomLevel:12];
-        self.zoomValue = 12;
+        [self.gaodeMapview setCenterCoordinate:coor];
+        self.zoomValue = 3;
+        [self.gaodeMapview setZoomLevel:self.zoomValue];
     }];
+}
 
+/**
+ 执行切换
+ */
+- (void)performSwitching {
+    self.isSwitching = YES;
     
+    [self.gaodeMapview setHidden:!self.gaodeMapview.isHidden];
+    [self.appleMapview setHidden:!self.appleMapview.isHidden];
     
-    //请求   3000代表大区  1000小区
-    [self loadCityAreaHouseWithScale:@"3000"
-                         andLatitude:@""
-                        andLongitude:@""
-                            andBlock:^{
+    if(!self.gaodeMapview.isHidden) {
+        MACoordinateRegion region = [self MARegionForMKRegion:self.appleMapview.region];
+        [self.gaodeMapview setRegion:region];
         
-    }];
+        self.gaodeMapview.centerCoordinate = self.appleMapview.centerCoordinate;
+        
+        [self.gaodeMapview setRotationDegree:self.appleMapview.camera.heading];
+    } else {
+        MKCoordinateRegion region = [self MKRegionForMARegion:self.gaodeMapview.region];
+        [self.appleMapview setRegion:region];
+        
+        self.appleMapview.centerCoordinate = self.gaodeMapview.centerCoordinate;
+        
+        [self.appleMapview.camera setHeading:self.gaodeMapview.rotationDegree];
+    }
+}
+
+/**
+ 高德地图转苹果地图
+ */
+- (MKCoordinateRegion)MKRegionForMARegion:(MACoordinateRegion)maRegion {
+    MKCoordinateRegion mkRegion = MKCoordinateRegionMake(maRegion.center, MKCoordinateSpanMake(maRegion.span.latitudeDelta, maRegion.span.longitudeDelta));
+    
+    return mkRegion;
+}
+
+/**
+ 苹果地图转高德地图
+ */
+- (MACoordinateRegion)MARegionForMKRegion:(MKCoordinateRegion)mkRegion {
+    MACoordinateRegion maRegion = MACoordinateRegionMake(mkRegion.center, MACoordinateSpanMake(mkRegion.span.latitudeDelta, mkRegion.span.longitudeDelta));
+    
+    
+    if(maRegion.center.latitude + maRegion.span.latitudeDelta / 2 > 90) {
+        maRegion.span.latitudeDelta = (90.0 - maRegion.center.latitude) / 2;
+    }
+    if(maRegion.center.longitude + maRegion.span.longitudeDelta / 2 > 180) {
+        maRegion.span.longitudeDelta = (180.0 - maRegion.center.longitude) / 2;
+    }
+    
+    return maRegion;
+}
+
+
+
+
+#pragma mark -- 回到用户的位置。
+- (void)backUserLocation {
+    //移动到用户的位置
+    [self.gaodeMapview setCenterCoordinate:self.coordinate animated:YES];
+}
+
+#pragma mark -- MAMapViewDelegate
+/**
+ * @brief 地图区域即将改变时会调用此接口
+ * @param mapView 地图View
+ * @param animated 是否动画
+ */
+- (void)mapView:(UIView *)mapView regionWillChangeAnimated:(BOOL)animated {
+        if(mapView.isHidden) {
+            return;
+        }
+    
+        if(self.isSwitching) {
+            self.isSwitching = NO;
+            return;
+        }
+    
+        if([mapView isKindOfClass:[MAMapView class]]) {///高德
+            MAMapView *gd_mapView = (MAMapView *)mapView;
+            self.zoomValue = gd_mapView.zoomLevel;
+            self.oldCoor = gd_mapView.centerCoordinate;
+            NSLog(@"之前的比例尺：%f", gd_mapView.zoomLevel);
+        } else {
+
+        }
+
+}
+
+/**
+ * @brief 地图区域改变完成后会调用此接口
+ * @param mapView 地图View
+ * @param animated 是否动画
+ */
+- (void)mapView:(UIView *)mapView regionDidChangeAnimated:(BOOL)animated {
+    
+    if(mapView.isHidden) {
+        return;
+    }
+    
+    if(self.isSwitching) {
+        self.isSwitching = NO;
+        return;
+    }
+    
+    if([mapView isKindOfClass:[MAMapView class]]) {
+        
+        MAMapView *_mapView = (MAMapView *)mapView;
+        NSLog(@"更改了区域");
+        NSLog(@"当前比例尺%f，过去比例尺：%f",_mapView.zoomLevel,self.zoomValue);
+        if (_mapView.zoomLevel > self.zoomValue) {
+            NSLog(@"地图放大了");
+        }else if (_mapView.zoomLevel < self.zoomValue){
+            NSLog(@"地图缩小了");
+        }
+        
+        if(_mapView.zoomLevel < 4.5) {///中国
+            if (_mapView.zoomLevel == self.zoomValue) {//当平移地图。大区不再重复请求
+                return;
+            }
+            //请求大区
+            [self loadCityAreaHouseWithScale:@"country"
+                                 andLatitude:[NSString stringWithFormat:@"%f",_mapView.centerCoordinate.latitude]
+                                andLongitude:[NSString stringWithFormat:@"%f",_mapView.centerCoordinate.longitude]
+                                    andBlock:^{
+                                        
+                                    }];
+        } else if(_mapView.zoomLevel > 4.6 && _mapView.zoomLevel <= 6.5) {///浙江
+            if (_mapView.zoomLevel == self.zoomValue) {//当平移地图。大区不再重复请求
+                return;
+            }
+            [self loadCityAreaHouseWithScale:@"province"
+                                 andLatitude:[NSString stringWithFormat:@"%f",_mapView.centerCoordinate.latitude]
+                                andLongitude:[NSString stringWithFormat:@"%f",_mapView.centerCoordinate.longitude]
+                                    andBlock:^{
+                                        
+                                    }];
+        } else if(_mapView.zoomLevel > 6.5 && _mapView.zoomLevel <= 7.5) {///杭州
+            if (_mapView.zoomLevel == self.zoomValue) {//当平移地图。大区不再重复请求
+                return;
+            }
+            [self loadCityAreaHouseWithScale:@"city"
+                                 andLatitude:[NSString stringWithFormat:@"%f",_mapView.centerCoordinate.latitude]
+                                andLongitude:[NSString stringWithFormat:@"%f",_mapView.centerCoordinate.longitude]
+                                    andBlock:^{
+                                        
+                                    }];
+        } else  if (_mapView.zoomLevel > 7.5) {///具体多个
+            
+            //当没有放大缩小 计算平移的距离。当距离小于2千米。不再进行计算  避免过度消耗
+            float distance = [self distanceBetweenFromCoor:self.oldCoor toCoor:_mapView.centerCoordinate];
+            if (distance <= 1000 && _mapView.zoomLevel == self.zoomValue) {
+                return;
+            }
+            [self loadCityAreaHouseWithScale:@"list"
+                                 andLatitude:[NSString stringWithFormat:@"%f",_mapView.centerCoordinate.latitude]
+                                andLongitude:[NSString stringWithFormat:@"%f",_mapView.centerCoordinate.longitude]
+                                    andBlock:^{
+                                        
+                                    }];
+            
+        }
+        
+        if(!AMapDataAvailableForCoordinate(self.gaodeMapview.centerCoordinate)) {
+            [self performSwitching];
+            
+        }
+    } else {
+        if(AMapDataAvailableForCoordinate(self.appleMapview.centerCoordinate)) {
+            [self performSwitching];
+            
+        }
+    }
     
 }
 
@@ -108,147 +286,131 @@
                                   andLongitude:longitude
                                       andScale:scale
                                       andBlock:^(id result) {
-                                               NSArray *dataArray = result;
-                                               
-                                               if (dataArray.count > 0) {
-                                                   [weakSelf.mapView removeAnnotations:weakSelf.mapView.annotations];
-                                                   
-                                                   if ([scale isEqualToString:@"3000"]) {//请求大区
-                                                       for (NSDictionary *dic in dataArray) {
-                                                           GDAnnotation *an = [[GDAnnotation alloc] init];
-                                                           CLLocationCoordinate2D coor;
-                                                           coor.latitude = [dic[@"latitude"] floatValue];
-                                                           coor.longitude = [dic[@"longitude"] floatValue];
-                                                           an.type = 1;
-                                                           an.coordinate = coor;
-                                                           an.title = dic[@"title"];
-                                                           an.subtitle = [NSString stringWithFormat:@"%@个",dic[@"count"]];
-                                                           an.Id = dic[@"id"];
-                                                           [weakSelf.mapView addAnnotation:an];
-                                                       }
-                                                       
-                                                   }else if([scale isEqualToString:@"1000"]) {//请求小区
-                                                       
-                                                       NSArray *smallArray = @[@{@"latitude" : @"30.2739363924",
-                                                                                 @"longitude" : @"120.1444124581",
-                                                                                 @"count" : @"5",
-                                                                                 @"title" : @"黄龙电站"
-                                                                                 },
-                                                                               @{@"latitude" : @"30.2784934383",
-                                                                                 @"longitude" : @"120.1580622499",
-                                                                                 @"count" : @"5",
-                                                                                 @"title" : @"宁波大厦电站"
-                                                                                 },
-                                                                               
-                                                                               @{@"latitude" : @"30.1899729029",
-                                                                                 @"longitude" : @"120.1743670866",
-                                                                                 @"count" : @"11",
-                                                                                 @"title" : @"宝龙广场电站"
-                                                                                 },
-                                                                               @{@"latitude" : @"30.1847000403",
-                                                                                 @"longitude" : @"120.1905884848",
-                                                                                 @"count" : @"5",
-                                                                                 @"title" : @"长江西苑电站"
-                                                                                 },
-                                                                               @{@"latitude" : @"30.2011656182",
-                                                                                 @"longitude" : @"120.1865363843",
-                                                                                 @"count" : @"11",
-                                                                                 @"title" : @"香溢公寓电站"
-                                                                                 }];
-                                                       
-                                                       for (NSDictionary *dic in smallArray) {
-                                                           
-                                                           GDAnnotation *an = [[GDAnnotation alloc] init];
-                                                           CLLocationCoordinate2D coor;
-                                                           coor.latitude = [dic[@"latitude"] floatValue];
-                                                           coor.longitude = [dic[@"longitude"] floatValue];
-                                                           an.type = 2;
-                                                           an.coordinate = coor;
-                                                           an.title = dic[@"title"];
-                           
-                                                           
-                                                           [weakSelf.mapView addAnnotation:an];
-                                                       }
-                                                   }
-                                                   block();
-                                               }else {
-                                                   
-                                                   
-                                                   NSLog(@"无房源！");
-                                               }
-                                           }];
+                                          NSArray *dataArray = result;
+                                          
+                                          if (dataArray.count > 0) {
+                                              [weakSelf.gaodeMapview removeAnnotations:weakSelf.gaodeMapview.annotations];
+                                              
+                                              if ([scale isEqualToString:@"country"]) {///中国
+                                                  for (NSDictionary *dic in dataArray) {
+                                                      GDAnnotation *an = [[GDAnnotation alloc] init];
+                                                      CLLocationCoordinate2D coor;
+                                                      coor.latitude = [dic[@"latitude"] floatValue];
+                                                      coor.longitude = [dic[@"longitude"] floatValue];
+                                                      an.type = 0;
+                                                      an.coordinate = coor;
+                                                      an.title = dic[@"title"];
+                                                      an.subtitle = [NSString stringWithFormat:@"%@个",dic[@"count"]];
+                                                      an.Id = dic[@"id"];
+                                                      [weakSelf.gaodeMapview addAnnotation:an];
+                                                  }
+                                                  
+                                              } else if([scale isEqualToString:@"province"]) {///浙江省
+                                                  ///模拟假数据 实际操作是dataArray 29.3382485990, 120.3734912522
+                                                  NSArray *smallArray = @[@{@"latitude" : @"29.3382485990",
+                                                                            @"longitude" : @"120.3734912522",
+                                                                            @"count" : @"1",
+                                                                            @"title" : @"浙江省"
+                                                                            }];
+                                                  
+                                                  for (NSDictionary *dic in smallArray) {
+                                                      
+                                                      GDAnnotation *an = [[GDAnnotation alloc] init];
+                                                      CLLocationCoordinate2D coor;
+                                                      coor.latitude = [dic[@"latitude"] floatValue];
+                                                      coor.longitude = [dic[@"longitude"] floatValue];
+                                                      an.type = 1;
+                                                      an.coordinate = coor;
+                                                      an.title = dic[@"title"];
+                                                      an.subtitle = [NSString stringWithFormat:@"%@个",dic[@"count"]];
+                                                      
+                                                      [weakSelf.gaodeMapview addAnnotation:an];
+                                                  }
+                                                  
+                                              } else if([scale isEqualToString:@"city"]) {///杭州
+                                                  ///模拟假数据 实际操作是dataArray 30.2956048360,  120.2191479035
+                                                  NSArray *smallArray = @[@{@"latitude" : @"30.2956048360",
+                                                                            @"longitude" : @"120.2191479035",
+                                                                            @"count" : @"1",
+                                                                            @"title" : @"杭州市"
+                                                                            }];
+                                                  
+                                                  for (NSDictionary *dic in smallArray) {
+                                                      
+                                                      GDAnnotation *an = [[GDAnnotation alloc] init];
+                                                      CLLocationCoordinate2D coor;
+                                                      coor.latitude = [dic[@"latitude"] floatValue];
+                                                      coor.longitude = [dic[@"longitude"] floatValue];
+                                                      an.type = 2;
+                                                      an.coordinate = coor;
+                                                      an.title = dic[@"title"];
+                                                      an.subtitle = [NSString stringWithFormat:@"%@个",dic[@"count"]];
+                                                      
+                                                      [weakSelf.gaodeMapview addAnnotation:an];
+                                                  }
+                                                  
+                                              } else if ([scale isEqualToString:@"list"]) {///杭州
+                                                  
+                                                  ///模拟假数据 实际操作是dataArray
+                                                  NSArray *smallArray = @[@{@"latitude" : @"30.2739363924",
+                                                                            @"longitude" : @"120.1444124581",
+                                                                            @"count" : @"5",
+                                                                            @"title" : @"黄龙电站"
+                                                                            },
+                                                                          @{@"latitude" : @"30.2784934383",
+                                                                            @"longitude" : @"120.1580622499",
+                                                                            @"count" : @"5",
+                                                                            @"title" : @"宁波大厦电站"
+                                                                            },
+                                                                          
+                                                                          @{@"latitude" : @"30.1899729029",
+                                                                            @"longitude" : @"120.1743670866",
+                                                                            @"count" : @"11",
+                                                                            @"title" : @"宝龙广场电站"
+                                                                            },
+                                                                          @{@"latitude" : @"30.1847000403",
+                                                                            @"longitude" : @"120.1905884848",
+                                                                            @"count" : @"5",
+                                                                            @"title" : @"长江西苑电站"
+                                                                            },
+                                                                          @{@"latitude" : @"30.2011656182",
+                                                                            @"longitude" : @"120.1865363843",
+                                                                            @"count" : @"11",
+                                                                            @"title" : @"香溢公寓电站"
+                                                                            }];
+                                                  
+                                                  for (NSDictionary *dic in smallArray) {
+                                                      
+                                                      GDAnnotation *an = [[GDAnnotation alloc] init];
+                                                      CLLocationCoordinate2D coor;
+                                                      coor.latitude = [dic[@"latitude"] floatValue];
+                                                      coor.longitude = [dic[@"longitude"] floatValue];
+                                                      an.type = 3;
+                                                      an.coordinate = coor;
+                                                      an.title = dic[@"title"];
+                                                      
+                                                      
+                                                      [weakSelf.gaodeMapview addAnnotation:an];
+                                                  }
+                                              }
+                                              block();
+                                              
+                                              
+                                          } else {
+                                              NSLog(@"无房源！");
+                                          }
+                                      }];
 }
 
 
-#pragma mark -- 回到用户的位置。
-- (void)backUserLocation {
-    //移动到用户的位置
-    [self.mapView setCenterCoordinate:self.coordinate animated:YES];
-}
-
-#pragma mark -- BMMapViewDelegate
-/**
- * @brief 地图区域即将改变时会调用此接口
- * @param mapView 地图View
- * @param animated 是否动画
- */
-- (void)mapView:(MAMapView *)mapView regionWillChangeAnimated:(BOOL)animated {
-    self.zoomValue = mapView.zoomLevel;
-    self.oldCoor = mapView.centerCoordinate;
-    NSLog(@"之前的比例尺：%f",mapView.zoomLevel);
-}
-
-/**
- * @brief 地图区域改变完成后会调用此接口
- * @param mapView 地图View
- * @param animated 是否动画
- */
-- (void)mapView:(MAMapView *)mapView regionDidChangeAnimated:(BOOL)animated {
-    
-    NSLog(@"更改了区域");
-    NSLog(@"当前比例尺%f，过去比例尺：%f",mapView.zoomLevel,self.zoomValue);
-    if (mapView.zoomLevel > self.zoomValue) {
-        NSLog(@"地图放大了");
-    }else if (mapView.zoomLevel < self.zoomValue){
-        NSLog(@"地图缩小了");
-    }
-    
-    if (mapView.zoomLevel >12) {
-        //请求小区
-        //当没有放大缩小 计算平移的距离。当距离小于2千米。不再进行计算  避免过度消耗
-        float distance = [self distanceBetweenFromCoor:self.oldCoor toCoor:mapView.centerCoordinate];
-        if (distance <= 1000 && mapView.zoomLevel == self.zoomValue) {
-            return;
-        }
-        [self loadCityAreaHouseWithScale:@"1000"
-                             andLatitude:[NSString stringWithFormat:@"%f",mapView.centerCoordinate.latitude]
-                            andLongitude:[NSString stringWithFormat:@"%f",mapView.centerCoordinate.longitude]
-                                andBlock:^{
-            
-        }];
-
-    }else if(mapView.zoomLevel <= 12) {
-        if (mapView.zoomLevel == self.zoomValue) {//当平移地图。大区不再重复请求
-            return;
-        }
-        //请求大区
-        [self loadCityAreaHouseWithScale:@"3000"
-                             andLatitude:@"30.287459"
-                            andLongitude:@"120.153576"
-                                andBlock:^{
-            
-        }];
-    }
-}
-
-//使用苹果原生库计算两个经纬度直接的距离
-
+/// 使用苹果原生库计算两个经纬度直接的距离
 - (double)distanceBetweenFromCoor:(CLLocationCoordinate2D)coor1 toCoor:(CLLocationCoordinate2D)coor2 {
     CLLocation *curLocation = [[CLLocation alloc] initWithLatitude:coor1.latitude longitude:coor1.longitude];
     CLLocation *otherLocation = [[CLLocation alloc] initWithLatitude:coor2.latitude longitude:coor2.longitude];
     double distance  = [curLocation distanceFromLocation:otherLocation];
     return distance;
 }
+
 /**
  *用户方向更新后，会调用此函数
  *@param userLocation 新的用户位置
@@ -296,6 +458,8 @@
     
 }
 
+#pragma mark - 点击AnnotationView大头针 数据源方法
+
 /**
  * @brief 根据anntation生成对应的View。
  
@@ -318,7 +482,7 @@
     
     GDAnnotation *anno = (GDAnnotation *)annotation;
 
-    if (anno.type == 1) {
+    if (anno.type == 0 || anno.type == 1 || anno.type == 2) {
         NSString *AnnotationViewID = @"RoundAnnotationView";
         // 检查是否有重用的缓存
         RoundAnnotationView *annotationView = (RoundAnnotationView *)[mapView dequeueReusableAnnotationViewWithIdentifier:AnnotationViewID];
@@ -338,7 +502,7 @@
         annotationView.canShowCallout = NO;
         return annotationView;
         
-    }else {
+    } else {
         
         NSString *AnnotationViewID = @"RectangleAnnotationView";
         // 检查是否有重用的缓存
@@ -357,15 +521,17 @@
         return annotationView;
     }
 }
--(void)amapLocationManager:(AMapLocationManager *)manager didUpdateLocation:(CLLocation *)location {
+
+- (void)amapLocationManager:(AMapLocationManager *)manager didUpdateLocation:(CLLocation *)location {
     //输出的是模拟器的坐标
     CLLocationCoordinate2D coordinate2D = CLLocationCoordinate2DMake(location.coordinate.latitude, location.coordinate.longitude);
     self.coordinate = coordinate2D;
-    _mapView.centerCoordinate = coordinate2D;
+    self.gaodeMapview.centerCoordinate = coordinate2D;
     
 }
 
 
+#pragma mark - 点击AnnotationView大头针事件
 
 //点击了大头针
 /**
@@ -382,7 +548,7 @@
     
     GDAnnotation *annotationView = (GDAnnotation *)view.annotation;
 
-    if (annotationView.type == 2) {
+    if (annotationView.type == 3) {
         
         RectangleAnnotationView *messageAnno = (RectangleAnnotationView *)view;
         
@@ -396,7 +562,9 @@
         //计算距离 --> 请求列表数据 --> 完成 --> 展示表格
 //        self.communityId = annotationView.Id;
 
-    }else {
+    } else if (annotationView.type == 0) {
+        
+    } else {
         //点击了区域--->进入小区
         //拿到大头针经纬度，放大地图。然后重新计算小区
         [mapView setCenterCoordinate:annotationView.coordinate animated:NO];
@@ -411,13 +579,12 @@
  */
 - (void)mapView:(MAMapView *)mapView didDeselectAnnotationView:(MAAnnotationView *)view {
     GDAnnotation *annotationView = (GDAnnotation *)view.annotation;
-    if (annotationView.type == 2) {
+    if (annotationView.type == 3) {
         RectangleAnnotationView *messageAnno = (RectangleAnnotationView *)view;
         annotationView.messageAnnoIsBig = @"no";
         [messageAnno didDeSelectedAnnotation:messageAnno];
         [mapView reloadMap];
     }
-
 }
 
 @end

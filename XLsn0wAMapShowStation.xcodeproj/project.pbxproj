@@ -34,7 +34,6 @@
 		CD6AA4C420073C6D00B43A1F /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		CD6AA4CC20073C8200B43A1F /* GDAnnotation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GDAnnotation.h; sourceTree = "<group>"; };
 		CD6AA4CD20073C8200B43A1F /* GDAnnotation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GDAnnotation.m; sourceTree = "<group>"; };
-		CD6AA4CE20073C8200B43A1F /* MapFindViewModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MapFindViewModel.h; sourceTree = "<group>"; };
 		CD6AA4D020073C8300B43A1F /* ShowStationViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ShowStationViewController.m; sourceTree = "<group>"; };
 		CD6AA4D120073C8300B43A1F /* ShowStationViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShowStationViewController.h; sourceTree = "<group>"; };
 		CD6AA4D320073C8300B43A1F /* RoundAnnotationView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RoundAnnotationView.h; sourceTree = "<group>"; };
@@ -93,10 +92,10 @@
 				CD6AA4B520073C6D00B43A1F /* AppDelegate.h */,
 				CD6AA4B620073C6D00B43A1F /* AppDelegate.m */,
 				CD6AA4E120073DC600B43A1F /* PrefixHeader.pch */,
-				CD6AA4CB20073C8200B43A1F /* Model */,
-				CD6AA4D220073C8300B43A1F /* View */,
-				CD6AA4D720073C8300B43A1F /* ViewModel */,
 				CD6AA4CF20073C8300B43A1F /* Controller */,
+				CD6AA4D720073C8300B43A1F /* ViewModel */,
+				CD6AA4D220073C8300B43A1F /* View */,
+				CD6AA4CB20073C8200B43A1F /* Model */,
 				CD6AA4E220073E5100B43A1F /* Resources */,
 				CD6AA4BB20073C6D00B43A1F /* Main.storyboard */,
 				CD6AA4BE20073C6D00B43A1F /* Assets.xcassets */,
@@ -112,7 +111,6 @@
 			children = (
 				CD6AA4CC20073C8200B43A1F /* GDAnnotation.h */,
 				CD6AA4CD20073C8200B43A1F /* GDAnnotation.m */,
-				CD6AA4CE20073C8200B43A1F /* MapFindViewModel.h */,
 			);
 			path = Model;
 			sourceTree = "<group>";
