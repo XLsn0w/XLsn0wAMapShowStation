@@ -120,8 +120,8 @@
 		CD6AA4CF20073C8300B43A1F /* Controller */ = {
 			isa = PBXGroup;
 			children = (
-				CD6AA4D020073C8300B43A1F /* ShowStationViewController.m */,
 				CD6AA4D120073C8300B43A1F /* ShowStationViewController.h */,
+				CD6AA4D020073C8300B43A1F /* ShowStationViewController.m */,
 			);
 			path = Controller;
 			sourceTree = "<group>";
@@ -130,8 +130,8 @@
 			isa = PBXGroup;
 			children = (
 				CD6AA4D320073C8300B43A1F /* RoundAnnotationView.h */,
-				CD6AA4D420073C8300B43A1F /* RectangleAnnotationView.h */,
 				CD6AA4D520073C8300B43A1F /* RoundAnnotationView.m */,
+				CD6AA4D420073C8300B43A1F /* RectangleAnnotationView.h */,
 				CD6AA4D620073C8300B43A1F /* RectangleAnnotationView.m */,
 			);
 			path = View;
@@ -436,10 +436,11 @@
 				DEVELOPMENT_TEAM = MS6RTU94VW;
 				GCC_PREFIX_HEADER = XLsn0wAMapShowStation/PrefixHeader.pch;
 				INFOPLIST_FILE = XLsn0wAMapShowStation/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.ginlong.amapdemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -452,10 +453,11 @@
 				DEVELOPMENT_TEAM = MS6RTU94VW;
 				GCC_PREFIX_HEADER = XLsn0wAMapShowStation/PrefixHeader.pch;
 				INFOPLIST_FILE = XLsn0wAMapShowStation/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.ginlong.amapdemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
