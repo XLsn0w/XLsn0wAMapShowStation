@@ -8,6 +8,13 @@
 
 #import <UIKit/UIKit.h>
 
+/**
+ if ([annotation isKindOfClass:[MAUserLocation class]]) {
+ return nil;
+ }
+ 移除 MAUserLocation
+ 因为MAUserLocation和GDAnnotation都是遵守<MAAnnotation>
+ */
 @interface GDAnnotation : NSObject <MAAnnotation>///遵守协议
 
 @property(nonatomic, assign) NSInteger type;///区分层级

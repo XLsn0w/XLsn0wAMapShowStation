@@ -15,7 +15,7 @@
 @property(nonatomic, strong) RectangleAnnotationView *messageA;//记录点击过的大头针。便于点击空白时。把这个大头针缩小为原始大小
 
 @end
-
+/// 采用真机调试  效果图是分支MapFind里面  本代码是master主干
 @implementation ShowStationViewController
 
 #pragma mark -- Life Cycle
