@@ -2,7 +2,7 @@
 
 ## 采用真机调试 效果图需要切换到分支MapFind里面(本代码默认master)
 
-## 百度地图版本也有 需要可以联系我索取
+## 百度地图版本请访问 https://github.com/XLsn0wKit/BaiduMapKitFind
 
 ## 地图找房 高德地图显示已知点 按比例尺缩放显示数目
 
